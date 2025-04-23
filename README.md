@@ -3,9 +3,10 @@
 
 PhaseUp.AI is an interactive web application that helps game developers optimize and improve their Phaser.js game code through AI-powered suggestions and analysis.
 
-![PhaseUp.AI](./assets/images/logo.png)
+![image](https://github.com/user-attachments/assets/a0623875-b06a-47a1-883d-9e02d70adfa4)
 
-## Features
+
+## Key Features
 
 - **AI-Powered Code Suggestions**: Leverages Hugging Face AI models to analyze and improve your Phaser.js game code
 - **Visual Diff System**: See exactly what changes are being suggested with highlighted code differences
@@ -14,7 +15,13 @@ PhaseUp.AI is an interactive web application that helps game developers optimize
 - **Learning Assistant**: Access a library of optimization techniques and best practices for Phaser.js development
 - **Code Pattern Detection**: Automatically identify common issues and anti-patterns in your code
 
+## How It Works
+
+PhaseUp.AI uses machine learning algorithms to analyze your Phaser.js code, comparing it against thousands of optimized game projects. The tool identifies inefficient patterns, resource usage issues, and opportunities for improvement, then generates specific, actionable recommendations to enhance your game's performance and code quality.
+
 ## Getting Started
+
+Simply load your Phaser.js project files into the PhaseUp.AI interface, and the tool will automatically begin analyzing your code. Review the suggestions, apply the recommended changes, and watch your game performance improve! 
 
 ### Prerequisites
 
@@ -123,7 +130,7 @@ If the application is running slowly:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is under development.
 
 ## Acknowledgments
 
