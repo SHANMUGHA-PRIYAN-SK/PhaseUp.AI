@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+   <html lang="en">
+   <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+       <title>PhaseUp.AI</title>
+       <script src="https://cdn.tailwindcss.com"></script>
+       <link rel="stylesheet" href="assets/codemirror.min.css">
+       <link rel="stylesheet" href="assets/dracula.min.css">
+       <!-- Add Diff2HTML for visual diff -->
+       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
+       <script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js"></script>
+       <script src="https://cdnjs.cloudflare.com/ajax/libs/diff-match-patch/20121119/diff_match_patch.js"></script>
+       <!-- Add Animate.css for animations -->
+       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+       <!-- Add particles.js for background effects -->
+       <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+       <!-- Add animations.js for sparkle effects -->
+       <script src="animations.js"></script>
+       <link rel="stylesheet" href="styles.css">
+       <!-- Fallback for diff_match_patch -->
+       <script>
+           // Check if diff_match_patch is loaded properly
+           if (typeof diff_match_patch === 'undefined') {
+               console.error('diff_match_patch not loaded, adding fallback');
+               document.write('<script src="https://neil.fraser.name/software/diff_match_patch/diff_match_patch.js"><\/script>');
+           }
+       </script>
+       <!-- Add Chart.js for performance visualization -->
+       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+       <!-- Add Hugging Face Inference API client -->
+       <script src="https://cdn.jsdelivr.net/npm/@huggingface/inference@2.6.1/dist/index.min.js"></script>
+       <!-- Fallback for Hugging Face script -->
+       <script>
+           // Check if HfInference is loaded properly
+           if (typeof HfInference === 'undefined') {
+               console.error('HfInference not loaded, adding fallback');
+               document.write('<script src="https://unpkg.com/@huggingface/inference@latest/dist/index.min.js"><\/script>');
+               
+               // Add another verification to confirm it loaded
+               setTimeout(() => {
+                   if (typeof HfInference === 'undefined') {
+                       console.error('HfInference still not available after fallback');
+                       // Try one final source
+                       const script = document.createElement('script');
+                       script.src = 'https://cdn.skypack.dev/@huggingface/inference';
+                       document.head.appendChild(script);
+                   } else {
+                       console.log('HfInference loaded via fallback');
+                       // Initialize if the script loads
+                       if (typeof initializeHuggingFace === 'function') {
+                           initializeHuggingFace();
+                       }
+                   }
+               }, 1000);
+           }
+       </script>
+       <!-- Add loading spinner styles -->
+       <style>
+           .ai-loader {
+               border: 5px solid #f3f3f3;
+               border-top: 5px solid #ef4444;
+               border-radius: 50%;
+               width: 40px;
+               height: 40px;
+               animation: spin 1s linear infinite;
+               margin: 20px auto;
+           }
+           @keyframes spin {
+               0% { transform: rotate(0deg); }
+               100% { transform: rotate(360deg); }
+           }
+           .ai-processing {
+               position: relative;
+           }
+           .ai-processing::after {
+               content: '';
+               position: absolute;
+               top: 0;
+               left: 0;
+               right: 0;
+               bottom: 0;
+               background: rgba(0, 0, 0, 0.7);
+               display: flex;
+               justify-content: center;
+               align-items: center;
+               z-index: 10;
+           }
+           
+           /* Game-themed UI styles */
+           body {
+               background-color: #0f1120;
+               background-image: 
+                   radial-gradient(circle at 25% 25%, rgba(255, 69, 58, 0.05) 0%, transparent 50%),
+                   radial-gradient(circle at 75% 75%, rgba(94, 114, 228, 0.05) 0%, transparent 50%);
+               position: relative;
+               overflow-x: hidden;
+           }
+           
+           body::before {
+               content: "";
+               position: fixed;
+               top: 0;
+               left: 0;
+               width: 100%;
+               height: 100%;
+               background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="none" width="100" height="100"/><rect fill="rgba(127, 127, 255, 0.03)" width="50" height="50"/><rect fill="rgba(127, 127, 255, 0.03)" x="50" y="50" width="50" height="50"/></svg>');
+               background-size: 100px 100px;
+               opacity: 0.3;
+               z-index: -1;
+               pointer-events: none;
+           }
+           
+           #particles-js {
+               position: fixed;
+               width: 100%;
+               height: 100%;
+               top: 0;
+               left: 0;
+               z-index: -1;
+           }
+           
+           .tech-scanner {
+               position: absolute;
+               height: 5px;
+               width: 100%;
+               background: linear-gradient(to right, transparent, #ef4444, transparent);
+               animation: scan 3s ease-in-out infinite;
+               opacity: 0.3;
+               border-radius: 2px;
+               pointer-events: none;
+           }
+           
+           @keyframes scan {
+               0% { top: 0; }
+               50% { top: 100%; }
+               100% { top: 0; }
+           }
+           
+           .card-glow {
+               position: relative;
+               overflow: hidden;
+               z-index: 1;
+               transition: all 0.3s ease;
+           }
+           
+           .card-glow::before {
+               content: "";
+               position: absolute;
+               top: -50%;
+               left: -50%;
+               width: 200%;
+               height: 200%;
+               background: radial-gradient(circle, rgba(255, 0, 0, 0.1) 0%, transparent 55%);
+               transition: all 0.3s ease;
+               opacity: 0;
+               z-index: -1;
+               pointer-events: none;
+           }
+           
+           .card-glow:hover::before {
+               opacity: 1;
+           }
+           
+           .card-glow:hover {
+               box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+               transform: translateY(-3px);
+           }
+           
+           .game-button {
+               position: relative;
+               overflow: hidden;
+               transition: all 0.2s ease;
+               border: 1px solid rgba(239, 68, 68, 0.5);
+           }
+           
+           .game-button::after {
+               content: "";
+               position: absolute;
+               top: 0;
+               left: -100%;
+               width: 100%;
+               height: 100%;
+               background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+               transition: all 0.5s ease;
+           }
+           
+           .game-button:hover::after {
+               left: 100%;
+           }
+           
+           .game-button:active {
+               transform: scale(0.95);
+           }
+           
+           .tech-line {
+               height: 1px;
+               background: linear-gradient(to right, transparent, #ef444480, transparent);
+               margin: 1rem 0;
+               width: 100%;
+           }
+           
+           .badge-blink {
+               animation: blink 2s infinite;
+           }
+           
+           @keyframes blink {
+               0% { opacity: 0.7; }
+               50% { opacity: 1; }
+               100% { opacity: 0.7; }
+           }
+           
+           .glitch-text {
+               position: relative;
+               animation: glitch 3s infinite;
+           }
+           
+           @keyframes glitch {
+               0% { text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75), -0.025em -0.05em 0 rgba(0, 255, 0, 0.75), 0.025em 0.05em 0 rgba(0, 0, 255, 0.75); }
+               49% { text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75), -0.025em -0.05em 0 rgba(0, 255, 0, 0.75), 0.025em 0.05em 0 rgba(0, 0, 255, 0.75); }
+               50% { text-shadow: -0.05em -0.025em 0 rgba(255, 0, 0, 0.75), 0.025em 0.025em 0 rgba(0, 255, 0, 0.75), -0.05em -0.05em 0 rgba(0, 0, 255, 0.75); }
+               99% { text-shadow: -0.05em -0.025em 0 rgba(255, 0, 0, 0.75), 0.025em 0.025em 0 rgba(0, 255, 0, 0.75), -0.05em -0.05em 0 rgba(0, 0, 255, 0.75); }
+               100% { text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75), -0.025em -0.05em 0 rgba(0, 255, 0, 0.75), 0.025em 0.05em 0 rgba(0, 0, 255, 0.75); }
+           }
+           
+           /* Hexagon background pattern */
+           .hexagon-bg {
+               background-color: #0f1120;
+               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg id='hexagons' fill='%23ef4444' fill-opacity='0.05' fill-rule='nonzero'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+           }
+       </style>
+   </head>
+   <body class="bg-gray-900 text-white min-h-screen hexagon-bg">
+       <div id="particles-js"></div>
+       <div class="tech-scanner"></div>
+
+       <div class="container mx-auto p-6 max-w-6xl relative">
+           <header class="text-center mb-8 animate__animated animate__fadeIn">
+               <h1 class="text-5xl font-bold text-red-500 mb-3 glitch-text">PhaseUp.AI</h1>
+               <div class="tech-line"></div>
+               <p class="text-gray-300 text-lg">Your Phaser.js Code Companion</p>
+           </header>
+
+           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+               <!-- Left Column -->
+               <div class="space-y-6 animate__animated animate__fadeInLeft">
+                   <div class="bg-gray-800 rounded-lg p-6 shadow-lg card-glow">
+                       <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                           <span class="mr-2">📝</span> Input Code
+                       </h2>
+                       <textarea id="inputCode" class="w-full h-48 mt-2 bg-gray-700 rounded-lg" placeholder="Paste your Phaser.js code"></textarea>
+                       <input id="prompt" type="text" class="w-full mt-4 p-3 bg-gray-700 border border-red-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="E.g., 'Optimize sprite movement'">
+                       <div class="mt-4 flex space-x-3">
+                           <button id="suggestBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 game-button">Get Suggestions</button>
+                           <button id="undoBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 game-button">Undo</button>
+                           <button id="redoBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 game-button">Redo</button>
+                       </div>
+                       <div class="mt-4 text-center">
+                           <button id="loadExampleBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 game-button">
+                               Load Example Code
+                           </button>
+                       </div>
+                   </div>
+
+                   <div class="bg-gray-800 rounded-lg p-6 shadow-lg card-glow">
+                       <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                           <span class="mr-2">🤖</span> Suggested Code
+                           <span id="aiModelBadge" class="ml-2 bg-green-600 text-xs px-2 py-1 rounded-full badge-blink">Hugging Face AI</span>
+                       </h2>
+                       <div id="suggestionContainer" class="relative">
+                           <textarea id="suggestedCode" class="w-full h-48 mt-2 bg-gray-700 rounded-lg" readonly></textarea>
+                           <div id="aiLoader" class="ai-loader hidden"></div>
+                       </div>
+                       <div id="explanation" class="mt-4 p-4 bg-gray-700 rounded-lg text-gray-300"></div>
+                       <button id="integrateBtn" class="mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 game-button">Integrate Code</button>
+                   </div>
+                   
+                   <!-- AI Model Settings -->
+                   <div class="bg-gray-800 rounded-lg p-6 shadow-lg card-glow">
+                       <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                           <span class="mr-2">⚙️</span> AI Model Settings
+                       </h2>
+                       <div class="mb-4">
+                           <label class="block text-gray-300 mb-2">Hugging Face API Key (optional):</label>
+                           <div class="flex">
+                               <input type="password" id="hfApiKeyInput" placeholder="Enter your API key" 
+                                   class="flex-grow p-2 bg-gray-700 border border-gray-600 rounded-l-lg text-white">
+                               <button id="hfApiKeyBtn" class="bg-blue-500 hover:bg-blue-600 px-4 rounded-r-lg game-button">Apply</button>
+                           </div>
+                           <p class="text-xs text-gray-400 mt-1">For higher rate limits and model access</p>
+                       </div>
+                       <div class="mb-4">
+                           <label class="block text-gray-300 mb-2">Select AI Model:</label>
+                           <select id="aiModelSelect" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                               <option value="codellama/CodeLlama-7b-hf">CodeLlama 7B</option>
+                               <option value="bigcode/starcoder">StarCoder</option>
+                               <option value="google/gemma-2b">Gemma 2B</option>
+                           </select>
+                       </div>
+                       <div class="mb-4">
+                           <label class="block text-gray-300 mb-2">Temperature:</label>
+                           <input type="range" id="temperatureSlider" min="0" max="1" step="0.1" value="0.7" class="w-full">
+                           <div class="flex justify-between text-gray-400 text-sm">
+                               <span>Focused (0.0)</span>
+                               <span id="temperatureValue">0.7</span>
+                               <span>Creative (1.0)</span>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+
+               <!-- Right Column -->
+               <div class="space-y-6 animate__animated animate__fadeInRight">
+                   <div class="bg-gray-800 rounded-lg p-6 shadow-lg card-glow">
+                       <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                           <span class="mr-2">✨</span> Final Output
+                       </h2>
+                       <textarea id="outputCode" class="w-full h-48 mt-2 bg-gray-700 rounded-lg" readonly></textarea>
+                   </div>
+
+                   <!-- Visual Diff View -->
+                   <div class="bg-gray-800 rounded-lg p-6 shadow-lg card-glow">
+                       <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                           <span class="mr-2">👁️</span> Visual Diff
+                       </h2>
+                       <div class="flex justify-end mb-2">
+                           <button id="toggleDiffBtn" class="text-sm bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-4 rounded-lg transition-colors duration-200 game-button">Toggle View Mode</button>
+                       </div>
+                       <div id="diffOutput" class="mt-2 bg-white rounded-lg p-4 overflow-auto h-48 text-black"></div>
+                   </div>
+
+                   <div class="bg-gray-800 rounded-lg p-6 shadow-lg card-glow">
+                       <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                           <span class="mr-2">🎮</span> Live Preview
+                       </h2>
+                       <div id="gameCanvas" class="mt-2 mx-auto border-2 border-red-500 rounded-lg overflow-hidden"></div>
+                   </div>
+               </div>
+           </div>
+
+           <!-- Performance Metrics Panel -->
+           <div id="performanceMetrics" class="mt-8 bg-gray-800 rounded-lg p-6 shadow-lg card-glow animate__animated animate__fadeIn animate__delay-1s">
+               <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                   <span class="mr-2">📊</span> Performance Analysis
+               </h2>
+               <div id="metricsContent" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+               <!-- Performance Chart -->
+           <div class="mt-6">
+                   <canvas id="performanceChart" class="w-full h-40"></canvas>
+               </div>
+           </div>
+
+           <!-- Learning Assistant Panel -->
+           <div id="learningAssistant" class="mt-8 bg-gray-800 rounded-lg p-6 shadow-lg card-glow animate__animated animate__fadeIn animate__delay-1s">
+               <div class="flex justify-between items-center mb-4">
+                   <h2 class="text-xl font-semibold text-red-500 flex items-center">
+                       <span class="mr-2">🧠</span> Learning Assistant
+                   </h2>
+                   <div class="flex space-x-2">
+                       <button id="prevLessonBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded-lg transition-colors duration-200 game-button">Previous</button>
+                       <button id="nextLessonBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded-lg transition-colors duration-200 game-button">Next</button>
+                   </div>
+               </div>
+               <div id="lessonContent" class="bg-gray-700 rounded-lg p-4">
+                   <h3 id="lessonTitle" class="font-bold text-yellow-400 text-lg mb-2">Welcome to Learning Assistant</h3>
+                   <div id="lessonExplanation" class="text-gray-300 mb-4">
+                       Select a code improvement to see detailed explanations about why and how it improves your Phaser.js game.
+                   </div>
+                   <div id="codeComparison" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 hidden">
+                       <div>
+                           <h4 class="font-semibold text-red-400 mb-1">Before:</h4>
+                           <pre class="bg-gray-800 p-2 rounded text-sm overflow-auto max-h-32"></pre>
+                       </div>
+                       <div>
+                           <h4 class="font-semibold text-green-400 mb-1">After:</h4>
+                           <pre class="bg-gray-800 p-2 rounded text-sm overflow-auto max-h-32"></pre>
+                       </div>
+                   </div>
+                   <div id="docsReference" class="bg-gray-800 p-3 rounded-lg">
+                       <h4 class="font-semibold text-blue-400 mb-1">Phaser Documentation:</h4>
+                       <div id="docsLinks" class="space-y-1">
+                           <a href="https://phaser.io/docs" target="_blank" class="text-blue-400 hover:text-blue-300 block">Official Phaser Documentation</a>
+                       </div>
+                   </div>
+                   <div id="bestPractices" class="mt-4 bg-gray-800 p-3 rounded-lg">
+                       <h4 class="font-semibold text-purple-400 mb-1">Best Practices:</h4>
+                       <ul id="practicesList" class="list-disc pl-5 text-gray-300">
+                           <li>Always use physics methods like setVelocity instead of directly modifying x/y properties</li>
+                           <li>Implement proper preloading to avoid assets loading during gameplay</li>
+                           <li>Destroy unused game objects to prevent memory leaks</li>
+                       </ul>
+                   </div>
+               </div>
+           </div>
+
+           <!-- Code Execution Sandbox -->
+           <div class="mt-8 bg-gray-800 rounded-lg p-6 shadow-lg card-glow animate__animated animate__fadeIn animate__delay-1s">
+               <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                   <span class="mr-2">🔬</span> Code Execution Sandbox
+               </h2>
+               <div class="flex justify-between items-center mb-4">
+                   <button id="executeBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 game-button">Execute Code</button>
+                   <div id="sandboxStatus" class="text-gray-300"></div>
+               </div>
+               <div id="sandboxOutput" class="bg-gray-700 p-4 rounded-lg h-48 overflow-auto font-mono text-sm"></div>
+           </div>
+
+           <!-- Tutorial & Examples -->
+           <div class="mt-8 bg-gray-800 rounded-lg p-6 shadow-lg card-glow animate__animated animate__fadeIn animate__delay-1s">
+               <h2 class="text-xl font-semibold text-red-500 mb-4 flex items-center">
+                   <span class="mr-2">📚</span> Tutorial & Examples
+               </h2>
+               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div>
+                       <h3 class="font-semibold text-white mb-2">Available Improvements</h3>
+                       <ul class="list-disc pl-5 text-gray-300">
+                           <li><button class="example-btn text-blue-400 hover:text-blue-300" data-type="movement">Optimize Sprite Movement</button></li>
+                           <li><button class="example-btn text-blue-400 hover:text-blue-300" data-type="collision">Add Collision Detection</button></li>
+                           <li><button class="example-btn text-blue-400 hover:text-blue-300" data-type="rendering">Optimize Rendering</button></li>
+                           <li><button class="example-btn text-blue-400 hover:text-blue-300" data-type="animation">Add Animations</button></li>
+                           <li><button class="example-btn text-blue-400 hover:text-blue-300" data-type="preload">Implement Preloading</button></li>
+                       </ul>
+                   </div>
+                   <div>
+                       <h3 class="font-semibold text-white mb-2">Quick Tips</h3>
+                       <div class="text-gray-300">
+                           <p>• Use "optimize movement" to improve sprite control</p>
+                           <p>• Try "add collision" for physics interactions</p>
+                           <p>• Fix rendering issues with "optimize rendering"</p>
+                           <p>• Make smoother games with "add animation"</p>
+                           <p>• Ensure assets load properly with "add preload"</p>
+                       </div>
+                   </div>
+               </div>
+           </div>
+
+           <footer class="mt-8 text-center text-gray-500 text-sm animate__animated animate__fadeIn animate__delay-2s">
+               <p>PhaseUp.AI - Making Phaser.js Game Development Smarter</p>
+               <div class="tech-line mt-2"></div>
+           </footer>
+       </div>
+
+       <!-- Debug panel for visual diff (hidden in UI) -->
+       <div id="diffDebug" style="display: none;" class="mt-8 bg-gray-800 rounded-lg p-6 shadow-lg">
+           <h2 class="text-xl font-semibold text-red-500 mb-4">Diff Debug</h2>
+           <div>
+               <button id="testDiffBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200">Test Diff</button>
+           </div>
+           <div id="diffDebugOutput" class="mt-4 p-4 bg-gray-700 rounded-lg text-gray-300"></div>
+       </div>
+
+       <script src="assets/codemirror.min.js"></script>
+       <script src="assets/phaser.min.js"></script>
+       <script src="script.js"></script>
+       <script>
+           // Initialize event listeners after DOM is loaded
+           document.addEventListener('DOMContentLoaded', () => {
+               // Initialize particles.js
+               particlesJS("particles-js", {
+                   "particles": {
+                       "number": {
+                           "value": 80,
+                           "density": {
+                               "enable": true,
+                               "value_area": 800
+                           }
+                       },
+                       "color": {
+                           "value": "#ef4444"
+                       },
+                       "shape": {
+                           "type": "circle",
+                           "stroke": {
+                               "width": 0,
+                               "color": "#000000"
+                           },
+                       },
+                       "opacity": {
+                           "value": 0.3,
+                           "random": true,
+                           "anim": {
+                               "enable": true,
+                               "speed": 1,
+                               "opacity_min": 0.1,
+                               "sync": false
+                           }
+                       },
+                       "size": {
+                           "value": 3,
+                           "random": true,
+                       },
+                       "line_linked": {
+                           "enable": true,
+                           "distance": 150,
+                           "color": "#ef4444",
+                           "opacity": 0.2,
+                           "width": 1
+                       },
+                       "move": {
+                           "enable": true,
+                           "speed": 1,
+                           "direction": "none",
+                           "random": true,
+                           "straight": false,
+                           "out_mode": "out",
+                       }
+                   },
+                   "interactivity": {
+                       "detect_on": "canvas",
+                       "events": {
+                           "onhover": {
+                               "enable": true,
+                               "mode": "grab"
+                           },
+                           "onclick": {
+                               "enable": true,
+                               "mode": "push"
+                           },
+                       },
+                       "modes": {
+                           "grab": {
+                               "distance": 140,
+                               "line_linked": {
+                                   "opacity": 0.5
+                               }
+                           },
+                           "push": {
+                               "particles_nb": 3
+                           },
+                       }
+                   },
+                   "retina_detect": true
+               });
+               
+               // Initialize click sparkle effect
+               document.addEventListener('click', (e) => {
+                   if (window.phaseUpAnimations && window.phaseUpAnimations.createParticles) {
+                       window.phaseUpAnimations.createParticles(e.clientX, e.clientY);
+                   }
+               });
+               
+               // Add animation to cards when they come into view
+               const observer = new IntersectionObserver((entries) => {
+                   entries.forEach(entry => {
+                       if (entry.isIntersecting) {
+                           entry.target.classList.add('animate__animated', 'animate__fadeIn');
+                           observer.unobserve(entry.target);
+                       }
+                   });
+               }, { threshold: 0.1 });
+               
+               document.querySelectorAll('.card-glow').forEach(card => {
+                   observer.observe(card);
+               });
+               
+               // Button hover animation for game buttons
+               document.querySelectorAll('.game-button').forEach(button => {
+                   button.addEventListener('mouseenter', () => {
+                       button.classList.add('animate__animated', 'animate__pulse');
+                   });
+                   
+                   button.addEventListener('mouseleave', () => {
+                       button.classList.remove('animate__animated', 'animate__pulse');
+                   });
+               });
+               
+               // Create button click animation
+               document.querySelectorAll('.game-button').forEach(button => {
+                   button.addEventListener('click', function() {
+                       this.classList.add('animate__animated', 'animate__headShake');
+                       setTimeout(() => {
+                           this.classList.remove('animate__animated', 'animate__headShake');
+                       }, 500);
+                   });
+               });
+               
+               // Button event listeners
+               document.getElementById('suggestBtn').addEventListener('click', suggestChanges);
+               document.getElementById('undoBtn').addEventListener('click', undoChange);
+               document.getElementById('redoBtn').addEventListener('click', redoChange);
+               document.getElementById('integrateBtn').addEventListener('click', integrateCode);
+               document.getElementById('toggleDiffBtn').addEventListener('click', toggleDiffView);
+               document.getElementById('executeBtn').addEventListener('click', executeSandboxCode);
+               document.getElementById('loadExampleBtn').addEventListener('click', loadExampleCode);
+               
+               // Example buttons
+               document.querySelectorAll('.example-btn').forEach(button => {
+                   button.addEventListener('click', () => {
+                       loadExample(button.getAttribute('data-type'));
+                   });
+               });
+
+               // Test diff button (for debugging)
+               const testDiffBtn = document.getElementById('testDiffBtn');
+               if (testDiffBtn) {
+                   testDiffBtn.addEventListener('click', () => {
+                       const oldCode = "function test() {\n  console.log('hello');\n}";
+                       const newCode = "function test() {\n  console.log('world');\n  return true;\n}";
+                       
+                       try {
+                           generateDiff(oldCode, newCode);
+                           console.log('Test diff generated');
+                           
+                           // Also log info about diff_match_patch
+                           const diffDebugOutput = document.getElementById('diffDebugOutput');
+                           if (diffDebugOutput) {
+                               diffDebugOutput.innerHTML = `
+                                   diff_match_patch loaded: ${typeof diff_match_patch !== 'undefined'}<br>
+                                   diffPatch created: ${typeof new diff_match_patch() !== 'undefined'}<br>
+                                   diff methods: ${Object.keys(diff_match_patch.prototype).join(', ')}<br>
+                               `;
+                           }
+                       } catch (error) {
+                           console.error('Test diff error:', error);
+                           const diffDebugOutput = document.getElementById('diffDebugOutput');
+                           if (diffDebugOutput) {
+                               diffDebugOutput.innerHTML = `Error: ${error.message}`;
+                           }
+                       }
+                   });
+               }
+
+               // AI model settings
+               const temperatureSlider = document.getElementById('temperatureSlider');
+               const temperatureValue = document.getElementById('temperatureValue');
+               
+               temperatureSlider.addEventListener('input', () => {
+                   temperatureValue.textContent = temperatureSlider.value;
+               });
+           });
+       </script>
+   </body>
+   </html>
